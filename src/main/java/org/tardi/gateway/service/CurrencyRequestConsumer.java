@@ -1,6 +1,9 @@
 package org.tardi.gateway.service;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
 import io.smallrye.mutiny.Uni;
+import io.vertx.core.buffer.Buffer;
+import io.vertx.core.json.JsonObject;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
 import org.eclipse.microprofile.reactive.messaging.Channel;
@@ -10,7 +13,6 @@ import org.eclipse.microprofile.reactive.messaging.Message;
 import org.tardi.gateway.model.records.CurrencyRequest;
 import org.tardi.gateway.model.records.CurrencyResponse;
 
-import java.util.Arrays;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
@@ -28,14 +30,20 @@ public class CurrencyRequestConsumer {
 
 
     @Incoming("currency-requests")
-    public Uni<Void> process(Message<CurrencyRequest> message) {
+    public Uni<Void> process(Message<Buffer> message) {
         try {
-            CurrencyRequest request = message.getPayload();
 
             LOG.log(Level.INFO, "=== ПОЛУЧЕНО СООБЩЕНИЕ В QUARKUS ===");
-            LOG.log(Level.INFO, "Метаданные: " + message.getMetadata().toString());
-            LOG.log(Level.INFO, "Processing MQ message. metadata: "
-                    + message.getMetadata().toString() + "payload: " + message.getPayload().toString());
+
+            // Получаем JsonObject
+            String jsonString = message.getPayload().toString();
+            LOG.log(Level.INFO, "Сырая строка: " + jsonString);
+
+            // Вручную преобразуем в ваш рекорд
+            ObjectMapper mapper = new ObjectMapper();
+            CurrencyRequest request = mapper.readValue(jsonString, CurrencyRequest.class);
+            LOG.log(Level.INFO, "Распарсено: " + request.toString());
+
 
 //            String replyTo = message.getMetadata(IncomingRabbitMQMetadata.class)
 //                    .flatMap(IncomingRabbitMQMetadata::getReplyTo)
@@ -62,9 +70,9 @@ public class CurrencyRequestConsumer {
             // Возвращаем Uni<Void>, чтобы подтвердить обработку сообщения
             return Uni.createFrom().voidItem();
         } catch (Exception e) {
-            LOG.log(Level.INFO, "Error in mq processing:" + Arrays.toString(e.getStackTrace()));
+            LOG.log(Level.SEVERE, "Error: " + e.getMessage(), e);
 
-            return null;
+            return Uni.createFrom().failure(e);
         }
 
     }
