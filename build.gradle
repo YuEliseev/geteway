@@ -19,6 +19,8 @@ dependencies {
     implementation 'io.quarkus:quarkus-container-image-jib'
     implementation 'io.quarkus:quarkus-vertx'
 
+    implementation("io.quarkus:quarkus-micrometer-registry-prometheus")
+
     testImplementation 'io.quarkus:quarkus-junit'
     testImplementation 'io.rest-assured:rest-assured'
 }
